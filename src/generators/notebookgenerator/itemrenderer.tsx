@@ -51,6 +51,7 @@ export function notebookItemRenderer(
         collapsed = collapsed != undefined ? collapsed : false;
 
         // Render the twist button
+        let arrowSize = 'toc-downarrow-' + item.level;
         let twistButton = (
           <div
             className="toc-collapse-button"
@@ -59,11 +60,11 @@ export function notebookItemRenderer(
               collapseOnClick(item.cellRef);
             }}
           >
-            <div className="toc-twist-placeholder">placeholder</div>
-            <div className="toc-downarrow-img toc-arrow-img" />
+            <div className={arrowSize + ' toc-downarrow-img toc-arrow-img'} />
           </div>
         );
         if (collapsed) {
+          arrowSize = 'toc-rightarrow-' + item.level;
           twistButton = (
             <div
               className="toc-collapse-button"
@@ -72,8 +73,9 @@ export function notebookItemRenderer(
                 collapseOnClick(item.cellRef);
               }}
             >
-              <div className="toc-twist-placeholder">placeholder</div>
-              <div className="toc-rightarrow-img toc-arrow-img" />
+              <div
+                className={arrowSize + ' toc-rightarrow-img toc-arrow-img'}
+              />
             </div>
           );
         }
@@ -105,7 +107,6 @@ export function notebookItemRenderer(
               collapseOnClick(item.cellRef);
             }}
           >
-            <div className="toc-twist-placeholder">placeholder</div>
             <div className="toc-downarrow-img toc-arrow-img" />
           </div>
         );
@@ -118,7 +119,6 @@ export function notebookItemRenderer(
                 collapseOnClick(item.cellRef);
               }}
             >
-              <div className="toc-twist-placeholder">placeholder</div>
               <div className="toc-rightarrow-img toc-arrow-img" />
             </div>
           );

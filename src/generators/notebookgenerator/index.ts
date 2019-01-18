@@ -281,6 +281,7 @@ export function createNotebookGenerator(
                   panel.content.activeCellIndex = i;
                   el.scrollIntoView();
                 } else {
+                  panel.content.mode = 'command';
                   cell.node.scrollIntoView();
                   panel.content.activeCellIndex = i;
                 }
