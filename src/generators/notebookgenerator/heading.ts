@@ -13,4 +13,5 @@ export interface INotebookHeading extends INumberedHeading {
   prompt?: string;
   cellRef: Cell;
   hasChild?: boolean;
+  id: string;
 }

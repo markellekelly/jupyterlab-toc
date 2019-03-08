@@ -7,6 +7,10 @@ import { CodeCell, CodeCellModel, MarkdownCell, Cell } from '@jupyterlab/cells';
 
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 
+import { IStateDB } from '@jupyterlab/coreutils';
+
+import { ReadonlyJSONObject } from '@phosphor/coreutils';
+
 import { notebookItemRenderer } from './itemrenderer';
 
 import { notebookGeneratorToolbar } from './toolbargenerator';
@@ -36,7 +40,8 @@ import {
 export function createNotebookGenerator(
   tracker: INotebookTracker,
   sanitizer: ISanitizer,
-  widget: TableOfContents
+  widget: TableOfContents,
+  state: IStateDB
 ): TableOfContentsRegistry.IGenerator<NotebookPanel> {
   // Create a option manager to manage user settings
   const options = new NotebookGeneratorOptionsManager(widget, tracker, {
@@ -51,9 +56,9 @@ export function createNotebookGenerator(
       return notebookGeneratorToolbar(options, tracker);
     },
     itemRenderer: (item: INotebookHeading) => {
-      return notebookItemRenderer(options, item);
+      return notebookItemRenderer(options, item, state, widget.id);
     },
-    generate: panel => {
+    generate: (panel, state) => {
       let headings: INotebookHeading[] = [];
       let numberingDict: { [level: number]: number } = {};
       let collapseLevel = -1;
@@ -63,8 +68,10 @@ export function createNotebookGenerator(
       // Iterate through the cells in the notebook, generating their headings
       for (let i = 0; i < panel.content.widgets.length; i++) {
         let cell: Cell = panel.content.widgets[i];
-        let collapsed = cell.model.metadata.get('toc-hr-collapsed') as boolean;
-        collapsed = collapsed !== undefined ? collapsed : false;
+        let collapsed = false;
+        if (state) {
+          collapsed = state[cell.model.id] as boolean;
+        }
         let model = cell.model;
         if (model.type === 'code') {
           // Code is shown by default, overridden by previously saved settings
@@ -134,7 +141,8 @@ export function createNotebookGenerator(
               prevHeading,
               collapseLevel,
               options.filtered,
-              collapsed
+              collapsed,
+              state
             );
           }
         } else if (model.type === 'markdown') {
@@ -188,7 +196,8 @@ export function createNotebookGenerator(
             prevHeading,
             collapseLevel,
             options.filtered,
-            collapsed
+            collapsed,
+            state
           );
         }
       }
@@ -245,7 +254,8 @@ namespace Private {
     prevHeading: INotebookHeading | null,
     collapseLevel: number,
     filtered: string[],
-    collapsed: boolean
+    collapsed: boolean,
+    state: ReadonlyJSONObject | null | undefined
   ): [INotebookHeading[], INotebookHeading | null, number] {
     // If the heading is MD and MD is shown, add to headings
     if (
@@ -268,7 +278,8 @@ namespace Private {
         prevHeading,
         collapseLevel,
         filtered,
-        collapsed
+        collapsed,
+        state
       );
     }
     return [headings, prevHeading, collapseLevel];
@@ -308,7 +319,8 @@ namespace Private {
     prevHeading: INotebookHeading | null,
     collapseLevel: number,
     filtered: string[],
-    collapsed: boolean
+    collapsed: boolean,
+    state: ReadonlyJSONObject | null | undefined
   ): [INotebookHeading[], INotebookHeading | null, number] {
     if (!Private.headingIsFilteredOut(renderedHeading, filtered)) {
       // if the previous heading is a header of a higher level,
@@ -349,10 +361,10 @@ namespace Private {
         collapseLevel = -1;
         // Otherwise, reset collapsing appropriately
       } else {
-        let parentState = headings[k + 1].cellRef.model.metadata.get(
-          'toc-hr-collapsed'
-        ) as boolean;
-        parentState = parentState !== undefined ? parentState : false;
+        let parentState = false;
+        if (state) {
+          parentState = state[headings[k + 1].cellRef.model.id] as boolean;
+        }
         collapseLevel = parentState ? headings[k + 1].level : -1;
       }
     }
@@ -387,7 +399,8 @@ namespace Private {
         type: 'code',
         prompt: executionCount,
         cellRef: cellRef,
-        hasChild: false
+        hasChild: false,
+        id: cellRef.model.id
       });
     }
     return headings[0];
@@ -423,7 +436,8 @@ namespace Private {
         onClick,
         type: 'header',
         cellRef: cellRef,
-        hasChild: false
+        hasChild: false,
+        id: cellRef.model.id
       };
     } else if (match2) {
       // Next test for '==='-style headers.
@@ -438,7 +452,8 @@ namespace Private {
         onClick,
         type: 'header',
         cellRef: cellRef,
-        hasChild: false
+        hasChild: false,
+        id: cellRef.model.id
       };
     } else if (match3) {
       // Finally test for HTML headers. This will not catch multiline
@@ -454,7 +469,8 @@ namespace Private {
         onClick,
         type: 'header',
         cellRef: cellRef,
-        hasChild: false
+        hasChild: false,
+        id: cellRef.model.id
       };
     } else {
       return {
@@ -463,7 +479,8 @@ namespace Private {
         onClick,
         type: 'markdown',
         cellRef: cellRef,
-        hasChild: false
+        hasChild: false,
+        id: cellRef.model.id
       };
     }
   }
@@ -498,7 +515,8 @@ namespace Private {
             onClick: onClickFactory(markdownCell),
             type: 'markdown',
             cellRef: cellRef,
-            hasChild: false
+            hasChild: false,
+            id: cellRef.model.id
           };
         }
       } else {
@@ -528,7 +546,8 @@ namespace Private {
           onClick,
           type: 'header',
           cellRef: cellRef,
-          hasChild: false
+          hasChild: false,
+          id: cellRef.model.id
         };
       }
     }

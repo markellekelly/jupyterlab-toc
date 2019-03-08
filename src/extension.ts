@@ -12,6 +12,8 @@ import { IDocumentManager } from '@jupyterlab/docmanager';
 
 import { IEditorTracker } from '@jupyterlab/fileeditor';
 
+import { IStateDB } from '@jupyterlab/coreutils';
+
 import { IMarkdownViewerTracker } from '@jupyterlab/markdownviewer';
 
 import { INotebookTracker } from '@jupyterlab/notebook';
@@ -45,7 +47,8 @@ const extension: JupyterFrontEndPlugin<ITableOfContentsRegistry> = {
     ILayoutRestorer,
     IMarkdownViewerTracker,
     INotebookTracker,
-    IRenderMimeRegistry
+    IRenderMimeRegistry,
+    IStateDB
   ],
   activate: activateTOC
 };
@@ -61,10 +64,11 @@ function activateTOC(
   restorer: ILayoutRestorer,
   markdownViewerTracker: IMarkdownViewerTracker,
   notebookTracker: INotebookTracker,
-  rendermime: IRenderMimeRegistry
+  rendermime: IRenderMimeRegistry,
+  state: IStateDB
 ): ITableOfContentsRegistry {
   // Create the ToC widget.
-  const toc = new TableOfContents({ docmanager, rendermime });
+  const toc = new TableOfContents({ docmanager, rendermime, state });
 
   // Create the ToC registry.
   const registry = new TableOfContentsRegistry();
@@ -82,7 +86,8 @@ function activateTOC(
   const notebookGenerator = createNotebookGenerator(
     notebookTracker,
     rendermime.sanitizer,
-    toc
+    toc,
+    state
   );
   registry.addGenerator(notebookGenerator);
 

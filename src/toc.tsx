@@ -7,11 +7,17 @@ import { IDocumentManager } from '@jupyterlab/docmanager';
 
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 
+import { IStateDB } from '@jupyterlab/coreutils';
+
+import { ReadonlyJSONObject } from '@phosphor/coreutils';
+
 import { Message } from '@phosphor/messaging';
 
 import { Widget } from '@phosphor/widgets';
 
 import { TableOfContentsRegistry } from './registry';
+
+// import readonlyjson and istatedb
 
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -32,6 +38,8 @@ export class TableOfContents extends Widget {
     super();
     this._docmanager = options.docmanager;
     this._rendermime = options.rendermime;
+    this._state = options.state;
+    this._collapse = null;
   }
 
   /**
@@ -78,7 +86,10 @@ export class TableOfContents extends Widget {
       signal: context.model.contentChanged,
       timeout: RENDER_TIMEOUT
     });
-    this._monitor.activityStopped.connect(this.update, this);
+    this._monitor.activityStopped.connect(
+      this.update,
+      this
+    );
     this.updateTOC();
   }
 
@@ -96,8 +107,12 @@ export class TableOfContents extends Widget {
   updateTOC() {
     let toc: IHeading[] = [];
     let title = 'Table of Contents';
+    this.getState();
     if (this._current) {
-      toc = this._current.generator.generate(this._current.widget);
+      toc = this._current.generator.generate(
+        this._current.widget,
+        this._collapse
+      );
       const context = this._docmanager.contextForWidget(this._current.widget);
       if (context) {
         title = PathExt.basename(context.localPath);
@@ -138,6 +153,13 @@ export class TableOfContents extends Widget {
     });
   }
 
+  protected async getState() {
+    let key = 'toc-collapsed';
+    this._state.fetch(key).then(value => {
+      this._collapse = value as ReadonlyJSONObject;
+    });
+  }
+
   get generator() {
     if (this._current) {
       return this._current.generator;
@@ -157,6 +179,8 @@ export class TableOfContents extends Widget {
   private _docmanager: IDocumentManager;
   private _current: TableOfContents.ICurrentWidget | null;
   private _monitor: ActivityMonitor<any, any> | null;
+  private _collapse: ReadonlyJSONObject | null;
+  private _state: IStateDB;
 }
 
 /**
@@ -176,6 +200,8 @@ export namespace TableOfContents {
      * The rendermime for the application.
      */
     rendermime: IRenderMimeRegistry;
+
+    state: IStateDB;
   }
 
   /**
