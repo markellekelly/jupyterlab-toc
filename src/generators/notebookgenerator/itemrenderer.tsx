@@ -5,13 +5,13 @@ import { CodeComponent } from './codemirror';
 
 import { Cell } from '@jupyterlab/cells';
 
-import { IStateDB } from '@jupyterlab/coreutils';
-
-import { ReadonlyJSONObject, JSONObject } from '@phosphor/coreutils';
+import { JSONObject } from '@phosphor/coreutils';
 
 import { NotebookGeneratorOptionsManager } from './optionsmanager';
 
 import { INotebookHeading } from './heading';
+
+import { TableOfContents } from '../../toc';
 
 import { sanitizerOptions } from '../shared';
 
@@ -20,29 +20,20 @@ import * as React from 'react';
 export function notebookItemRenderer(
   options: NotebookGeneratorOptionsManager,
   item: INotebookHeading,
-  state: IStateDB,
-  id: string
+  widget: TableOfContents
 ) {
   let jsx;
   if (item.type === 'markdown' || item.type === 'header') {
     const collapseOnClick = (cellRef: Cell) => {
-      let key = 'toc-collapsed';
-      state.fetch(key).then(value => {
-        let collapsed = false;
-        let cellId = cellRef.model.id;
-        let data: JSONObject = {};
-        if (value && (value as ReadonlyJSONObject)[cellId]) {
-          collapsed = (value as ReadonlyJSONObject)[cellId] as boolean;
-          data = value as JSONObject;
-        }
-        data[cellId] = !collapsed;
-        state.save(key, data).then(() => {
-          state.fetch(key).then(value => {
-            console.log('State immediately after:');
-            console.log(value as ReadonlyJSONObject);
-          });
-        });
-      });
+      let collapsed = false;
+      let cellId = cellRef.model.id;
+      let data: JSONObject = {};
+      if (widget.state && widget.state[cellId]) {
+        collapsed = widget.state[cellId] as boolean;
+        data = widget.state;
+      }
+      data[cellId] = !collapsed;
+      widget.updateState(data);
     };
     let fontSizeClass = 'toc-level-size-default';
     let numbering = item.numbering && options.numbering ? item.numbering : '';
@@ -62,10 +53,10 @@ export function notebookItemRenderer(
       );
       // Render the headers
       if (item.type === 'header') {
-        let collapsed = item.cellRef!.model.metadata.get(
-          'toc-hr-collapsed'
-        ) as boolean;
-        collapsed = collapsed != undefined ? collapsed : false;
+        let collapsed = false;
+        if (widget.state) {
+          collapsed = widget.state[item.id] as boolean;
+        }
 
         // Render the twist button
         let twistButton = (
@@ -110,10 +101,10 @@ export function notebookItemRenderer(
         </span>
       );
       if (item.type === 'header') {
-        let collapsed = item.cellRef!.model.metadata.get(
-          'toc-hr-collapsed'
-        ) as boolean;
-        collapsed = collapsed != undefined ? collapsed : false;
+        let collapsed = false;
+        if (widget.state) {
+          collapsed = widget.state[item.id] as boolean;
+        }
         let twistButton = (
           <div
             className="toc-collapse-button"

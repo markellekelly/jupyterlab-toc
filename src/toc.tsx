@@ -1,7 +1,7 @@
 // Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
-import { ActivityMonitor, PathExt } from '@jupyterlab/coreutils';
+import { ActivityMonitor } from '@jupyterlab/coreutils';
 
 import { IDocumentManager } from '@jupyterlab/docmanager';
 
@@ -9,7 +9,7 @@ import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 
 import { IStateDB } from '@jupyterlab/coreutils';
 
-import { ReadonlyJSONObject } from '@phosphor/coreutils';
+import { JSONObject } from '@phosphor/coreutils';
 
 import { Message } from '@phosphor/messaging';
 
@@ -38,8 +38,8 @@ export class TableOfContents extends Widget {
     super();
     this._docmanager = options.docmanager;
     this._rendermime = options.rendermime;
-    this._state = options.state;
-    this._collapse = null;
+    this._statedb = options.state;
+    this.state = null;
   }
 
   /**
@@ -107,16 +107,15 @@ export class TableOfContents extends Widget {
   updateTOC() {
     let toc: IHeading[] = [];
     let title = 'Table of Contents';
-    this.getState();
+    if (this.state == null) {
+      console.log('pulling state!');
+      this.pullState();
+    } else {
+      console.log('State already exists, using:');
+      console.log(this.state);
+    }
     if (this._current) {
-      toc = this._current.generator.generate(
-        this._current.widget,
-        this._collapse
-      );
-      const context = this._docmanager.contextForWidget(this._current.widget);
-      if (context) {
-        title = PathExt.basename(context.localPath);
-      }
+      toc = this._current.generator.generate(this._current.widget, this);
     }
     let itemRenderer: (item: IHeading) => JSX.Element | null = (
       item: IHeading
@@ -153,10 +152,19 @@ export class TableOfContents extends Widget {
     });
   }
 
-  protected async getState() {
-    let key = 'toc-collapsed';
-    this._state.fetch(key).then(value => {
-      this._collapse = value as ReadonlyJSONObject;
+  updateState(newState: JSONObject) {
+    this.state = newState;
+    this._statedb.save('toc-awfeD83234KSHEU443asdwlx', newState).then(value => {
+      this.updateTOC();
+      console.log('updated state');
+    });
+  }
+
+  protected async pullState() {
+    let key = 'toc-awfeD83234KSHEU443asdwlx';
+    this._statedb.fetch(key).then(value => {
+      this.state = value as JSONObject;
+      console.log(this.state);
     });
   }
 
@@ -179,8 +187,8 @@ export class TableOfContents extends Widget {
   private _docmanager: IDocumentManager;
   private _current: TableOfContents.ICurrentWidget | null;
   private _monitor: ActivityMonitor<any, any> | null;
-  private _collapse: ReadonlyJSONObject | null;
-  private _state: IStateDB;
+  private _statedb: IStateDB;
+  public state: JSONObject | null;
 }
 
 /**

@@ -7,9 +7,7 @@ import { Token } from '@phosphor/coreutils';
 
 import { Widget } from '@phosphor/widgets';
 
-import { IHeading } from './toc';
-
-import { ReadonlyJSONObject } from '@phosphor/coreutils';
+import { IHeading, TableOfContents } from './toc';
 
 /**
  * An interface for a TableOfContentsRegistry.
@@ -120,6 +118,6 @@ export namespace TableOfContentsRegistry {
      * A function that takes the widget, and produces
      * a list of headings.
      */
-    generate(widget: W, collapse?: ReadonlyJSONObject | null): IHeading[];
+    generate(panel: W, widget: TableOfContents): IHeading[];
   }
 }

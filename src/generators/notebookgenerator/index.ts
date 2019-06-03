@@ -7,8 +7,6 @@ import { CodeCell, CodeCellModel, MarkdownCell, Cell } from '@jupyterlab/cells';
 
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 
-import { IStateDB } from '@jupyterlab/coreutils';
-
 import { ReadonlyJSONObject } from '@phosphor/coreutils';
 
 import { notebookItemRenderer } from './itemrenderer';
@@ -40,8 +38,7 @@ import {
 export function createNotebookGenerator(
   tracker: INotebookTracker,
   sanitizer: ISanitizer,
-  widget: TableOfContents,
-  state: IStateDB
+  widget: TableOfContents
 ): TableOfContentsRegistry.IGenerator<NotebookPanel> {
   // Create a option manager to manage user settings
   const options = new NotebookGeneratorOptionsManager(widget, tracker, {
@@ -56,9 +53,9 @@ export function createNotebookGenerator(
       return notebookGeneratorToolbar(options, tracker);
     },
     itemRenderer: (item: INotebookHeading) => {
-      return notebookItemRenderer(options, item, state, widget.id);
+      return notebookItemRenderer(options, item, widget);
     },
-    generate: (panel, state) => {
+    generate: (panel, widget) => {
       let headings: INotebookHeading[] = [];
       let numberingDict: { [level: number]: number } = {};
       let collapseLevel = -1;
@@ -69,8 +66,8 @@ export function createNotebookGenerator(
       for (let i = 0; i < panel.content.widgets.length; i++) {
         let cell: Cell = panel.content.widgets[i];
         let collapsed = false;
-        if (state) {
-          collapsed = state[cell.model.id] as boolean;
+        if (widget.state) {
+          collapsed = widget.state[cell.model.id] as boolean;
         }
         let model = cell.model;
         if (model.type === 'code') {
@@ -142,11 +139,12 @@ export function createNotebookGenerator(
               collapseLevel,
               options.filtered,
               collapsed,
-              state
+              widget.state
             );
           }
         } else if (model.type === 'markdown') {
           let mdCell = cell as MarkdownCell;
+          console.log('ID of ' + cell.model.value.text + ': ' + cell.model.id);
           let renderedHeading: INotebookHeading | undefined = undefined;
           let lastLevel = Private.getLastLevel(headings);
           // If the cell is rendered, generate the ToC items from the HTML
@@ -197,7 +195,7 @@ export function createNotebookGenerator(
             collapseLevel,
             options.filtered,
             collapsed,
-            state
+            widget.state
           );
         }
       }
@@ -255,7 +253,7 @@ namespace Private {
     collapseLevel: number,
     filtered: string[],
     collapsed: boolean,
-    state: ReadonlyJSONObject | null | undefined
+    state: ReadonlyJSONObject | null
   ): [INotebookHeading[], INotebookHeading | null, number] {
     // If the heading is MD and MD is shown, add to headings
     if (
@@ -320,7 +318,7 @@ namespace Private {
     collapseLevel: number,
     filtered: string[],
     collapsed: boolean,
-    state: ReadonlyJSONObject | null | undefined
+    state: ReadonlyJSONObject | null
   ): [INotebookHeading[], INotebookHeading | null, number] {
     if (!Private.headingIsFilteredOut(renderedHeading, filtered)) {
       // if the previous heading is a header of a higher level,

@@ -5,9 +5,9 @@ import { MarkdownDocGeneratorOptionsManager } from './optionsmanager';
 
 import * as React from 'react';
 
-interface INotebookGeneratorToolbarProps {}
+export interface INotebookGeneratorToolbarProps {}
 
-interface INotebookGeneratorToolbarState {
+export interface INotebookGeneratorToolbarState {
   numbering: boolean;
 }
 
